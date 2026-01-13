@@ -1,0 +1,2204 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Mini Mario — Full (Login + 10 Maps + Day/Night + FX + Sounds)</title>
+  <style>
+    html, body {
+      margin:0;
+      padding:0;
+      height:100%;
+      background:#0b0f14;
+      font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      -webkit-touch-callout:none;
+      -webkit-user-select:none;
+      -ms-user-select:none;
+      user-select:none;
+      overscroll-behavior:none;
+    }
+    .wrap {
+      height:100vh;
+      width:100vw;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      padding:0;
+      overflow:hidden;
+    }
+    .game-shell {
+      position:relative;
+      width:100%;
+      height:100%;
+      max-width:100%;
+    }
+    canvas {
+      width:100%;
+      height:100%;
+      display:block;
+      image-rendering: pixelated;
+      border-radius:0;
+      box-shadow:none;
+      background:#111;
+      touch-action:none; /* tránh kéo/zoom khi chơi */
+    }
+
+    .overlay{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.58);
+      border-radius:0;
+      padding:14px;
+      z-index:20;
+    }
+    .panel{
+      width:min(980px, 96%);
+      background:rgba(16,18,22,.94);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:18px;
+      padding:16px;
+      box-shadow:0 12px 40px rgba(0,0,0,.55);
+      color:#e8edf5;
+    }
+    .row{ display:grid; grid-template-columns: 1.1fr .9fr; gap:14px; }
+    @media (max-width:900px){ .row{ grid-template-columns:1fr; } }
+
+    h1{ margin:0 0 10px 0; font-size:22px; letter-spacing:.2px; }
+    h2{ margin:0 0 8px 0; font-size:14px; color:#e5e7eb; }
+    .muted{ color:#b6c2d2; font-size:13px; line-height:1.35; }
+    .controls{ margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{
+      appearance:none; border:0; cursor:pointer;
+      background:#22c55e; color:#04120a;
+      font-weight:900; padding:10px 14px; border-radius:12px;
+      box-shadow:0 10px 24px rgba(34,197,94,.22);
+    }
+    .btn.secondary{ background:#334155; color:#e5e7eb; box-shadow:none; }
+    .btn.danger{ background:#ef4444; color:#1a0505; }
+    .field{ margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    input[type="text"], input[type="password"], select{
+      width:min(360px, 100%);
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.15);
+      background:#0f172a;
+      color:#fff; outline:none;
+    }
+    input::placeholder{ color:#93a4b8; }
+
+    .card{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:12px;
+    }
+    .leader{ margin-top:10px; }
+    .leader ol{ margin:0; padding-left:18px; }
+    .leader li{ margin:6px 0; color:#e5e7eb; font-size:13px; display:flex; justify-content:space-between; gap:12px; }
+    .badge{ color:#9ca3af; font-size:12px; }
+
+    .kbd{
+      display:inline-block; padding:2px 7px; border-radius:8px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.25); margin:0 2px;
+    }
+
+    .topbar{
+      position:absolute; left:8px; right:8px; top:8px;
+      display:flex; align-items:center; justify-content:space-between;
+      pointer-events:none;
+      color:#fff;
+      text-shadow:0 2px 10px rgba(0,0,0,.35);
+      gap:10px;
+      z-index:15;
+    }
+    .hudbox{
+      pointer-events:none;
+      background:rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px;
+      padding:6px 8px;
+      display:flex; align-items:center; gap:8px;
+      backdrop-filter: blur(4px);
+      flex-wrap:wrap;
+    }
+    .hearts{ display:flex; gap:4px; align-items:center; }
+    .heart{ width:16px; height:16px; display:inline-block; }
+    .hudtext{ font-weight:900; font-size:14px; }
+    .small{ font-size:11px; color:#cbd5e1; font-weight:800; }
+
+    .topbtns{
+      position:absolute; right:8px; top:8px;
+      display:flex; gap:6px;
+      pointer-events:auto;
+      z-index:16;
+    }
+    .miniBtn{
+      border:1px solid rgba(255,255,255,.15);
+      background:rgba(15,23,42,.78);
+      color:#e8edf5;
+      padding:6px 8px;
+      border-radius:10px;
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer;
+    }
+
+    /* === MOBILE TOUCH CONTROLS (đơn giản) === */
+    .touch-shell{
+      position:absolute;
+      left:0; right:0; bottom:4px;
+      padding:4px 10px 6px;
+      display:none;
+      flex-direction:row;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
+      pointer-events:none;
+      z-index:18;
+    }
+    .touch-col{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      pointer-events:none;
+    }
+    .touch-row{
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .touch-btn{
+      min-width:54px;
+      min-height:48px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(15,23,42,.86);
+      color:#e5e7eb;
+      font-size:14px;
+      font-weight:800;
+      text-align:center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 6px 16px rgba(0,0,0,.55);
+      -webkit-tap-highlight-color: transparent;
+      pointer-events:auto;
+      touch-action:manipulation;
+    }
+    .touch-btn.primary{
+      background:rgba(34,197,94,.92);
+      color:#02140a;
+      font-weight:900;
+    }
+    .touch-btn.circle{
+      border-radius:999px;
+    }
+    .touch-btn:active{
+      transform:translateY(1px) scale(.98);
+      box-shadow:0 3px 10px rgba(0,0,0,.65);
+    }
+
+    @media (max-width:640px){
+      .touch-btn{ min-width:48px; min-height:42px; font-size:13px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="game-shell">
+    <canvas id="game" width="960" height="540"></canvas>
+
+    <!-- HUD -->
+    <div class="topbar" id="hud" style="display:none;">
+      <div class="hudbox">
+        <div class="hearts" id="hearts"></div>
+        <div class="hudtext" id="hudUser">—</div>
+        <div class="small" id="hudLevel">Level 1/10</div>
+        <div class="small" id="hudTime">Time: 00:00</div>
+        <div class="small" id="hudBuff">—</div>
+      </div>
+      <div class="hudbox">
+        <div class="hudtext" id="hudScore">Score: 0</div>
+      </div>
+    </div>
+
+    <!-- Top buttons (PAUSE + LIST) -->
+    <div class="topbtns" id="topButtons" style="display:none;">
+      <button class="miniBtn" id="pauseBtn">⏸</button>
+      <button class="miniBtn" id="listBtn">📋</button>
+    </div>
+
+    <!-- TOUCH CONTROLS: bên trái ← →, bên phải JUMP -->
+    <div class="touch-shell" id="touchControls">
+      <!-- Cột trái: chỉ di chuyển -->
+      <div class="touch-col">
+        <div class="touch-row">
+          <button class="touch-btn circle" id="btnLeft">←</button>
+          <button class="touch-btn circle" id="btnRight">→</button>
+        </div>
+      </div>
+      <!-- Cột phải: chỉ nhảy -->
+      <div class="touch-col" style="align-items:flex-end;">
+        <div class="touch-row">
+          <button class="touch-btn primary circle" id="btnJump">JUMP</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTH / START -->
+    <div class="overlay" id="startOverlay">
+      <div class="panel">
+        <div class="row">
+          <div class="card">
+            <h1>Mini Mario — Đăng nhập / Đăng ký</h1>
+            <div class="muted">
+              - 10 map, độ khó tăng dần, có hố nước, quái, phi tiêu, hộp đen, thời tiết<br/>
+              - Hộp <b>?</b>: Bất tử, Nhảy x2, +1 mạng (random)<br/>
+              - Rơi xuống nước / vực: mất 1 tim, hồi sinh tại điểm an toàn gần nhất<br/>
+              PC: <span class="kbd">←</span><span class="kbd">→</span>, 
+              <span class="kbd">Space</span>/<span class="kbd">↑</span>, reset <span class="kbd">R</span>.<br/>
+              Điện thoại: dùng các nút ảo bên dưới (← → / JUMP).
+            </div>
+
+            <div class="field" style="margin-top:12px;">
+              <input id="userInput" type="text" maxlength="16" autocomplete="username"
+                     placeholder="Tên tài khoản (vd: ROLA)" />
+              <input id="passInput" type="password" maxlength="20" autocomplete="current-password"
+                     placeholder="Mật khẩu" />
+            </div>
+
+            <div class="controls">
+              <button class="btn" id="loginBtn">Đăng nhập</button>
+              <button class="btn secondary" id="registerBtn">Đăng ký</button>
+              <button class="btn secondary" id="howBtn">Hướng dẫn</button>
+            </div>
+
+            <div class="muted" id="howText" style="display:none; margin-top:10px;">
+              - Nhảy vừa phải để qua cột & hố nước (đã cân chỉnh).<br/>
+              - Còn tim → hồi sinh tại chỗ an toàn, miễn nhiễm 3s.<br/>
+              - Hết 3 tim → Game Over, xếp hạng theo điểm cao nhất mỗi tài khoản.<br/>
+              - Điện thoại nên xoay ngang để chơi full màn hình.
+            </div>
+
+            <div class="muted" id="authMsg" style="margin-top:10px; color:#fbbf24; font-weight:900;"></div>
+          </div>
+
+          <div class="card leader">
+            <h2>Xếp hạng (Top 10)</h2>
+            <div class="badge">
+              Theo <b>điểm cao nhất</b> từng tài khoản, lưu trên thiết bị (localStorage).
+            </div>
+            <ol id="leaderList"></ol>
+            <div class="controls">
+              <button class="btn secondary" id="clearRankBtn">Xoá xếp hạng (trên thiết bị)</button>
+            </div>
+
+            <div style="margin-top:14px;">
+              <h2>Chọn skin (sau khi đăng nhập)</h2>
+              <div class="muted">Tone: đỏ, vàng, tím, trắng, đen… (chỉnh trong Danh sách)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IN-GAME LIST -->
+    <div class="overlay" id="listOverlay" style="display:none;">
+      <div class="panel">
+        <div class="row">
+          <div class="card">
+            <h1>Danh sách</h1>
+            <div class="muted">
+              Tài khoản: <b id="listUser">—</b><br/>
+              Mỗi lần chơi xong, điểm cao nhất của tài khoản này sẽ được lưu lại trên thiết bị.
+            </div>
+
+            <div class="controls" style="margin-top:12px;">
+              <button class="btn" id="backToGameBtn">⬅ Quay lại</button>
+              <button class="btn secondary" id="resumeBtn">▶ Tiếp tục</button>
+              <button class="btn secondary" id="restartLevelBtn">🔁 Chơi lại màn</button>
+              <button class="btn danger" id="logoutBtn">⎋ Đăng xuất</button>
+            </div>
+
+            <div class="card" style="margin-top:12px;">
+              <h2>Chọn skin</h2>
+              <div class="field">
+                <select id="skinSelect">
+                  <option value="red">Đỏ</option>
+                  <option value="gold">Vàng</option>
+                  <option value="purple">Tím</option>
+                  <option value="white">Trắng</option>
+                  <option value="black">Đen</option>
+                  <option value="cyan">Xanh ngọc</option>
+                </select>
+                <button class="btn secondary" id="saveSkinBtn">Lưu skin</button>
+              </div>
+              <div class="muted" style="margin-top:6px;">Skin chỉ đổi màu/hiệu ứng, không đổi gameplay.</div>
+            </div>
+          </div>
+
+          <div class="card leader">
+            <h2>Xếp hạng (Top 10)</h2>
+            <ol id="leaderListIngame"></ol>
+            <div class="controls">
+              <button class="btn secondary" id="clearRankBtn2">Xoá xếp hạng (trên thiết bị)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- END -->
+    <div class="overlay" id="endOverlay" style="display:none;">
+      <div class="panel">
+        <h1 id="endTitle">GAME OVER</h1>
+        <div class="muted" id="endDesc">...</div>
+        <div class="controls" style="margin-top:12px;">
+          <button class="btn" id="playAgainBtn">Chơi lại từ đầu</button>
+          <button class="btn secondary" id="backToStartBtn">Về đăng nhập</button>
+        </div>
+        <div class="leader" style="margin-top:14px;">
+          <h2>Xếp hạng (Top 10)</h2>
+          <ol id="leaderList2"></ol>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   MINI MARIO — FULL SINGLE FILE (MOBILE + PC + MIT-FRIENDLY)
+   + NÂNG CẤP LƯU TÀI KHOẢN + XẾP HẠNG THEO ĐIỂM CAO NHẤT
+   ========================================================= */
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height;
+const TILE = 40;
+
+// auto-fit (chỉ scale CSS, logic vẫn dùng 960x540)
+function resizeCanvas(){
+  document.body.style.overflow = "hidden";
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// ===== DEVICE DETECT =====
+const isTouchDevice =
+  ("ontouchstart" in window) ||
+  (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+  (navigator.msMaxTouchPoints && navigator.msMaxTouchPoints > 0);
+
+// ===== UI =====
+const startOverlay = document.getElementById("startOverlay");
+const listOverlay  = document.getElementById("listOverlay");
+const endOverlay   = document.getElementById("endOverlay");
+
+const loginBtn     = document.getElementById("loginBtn");
+const registerBtn  = document.getElementById("registerBtn");
+const userInput    = document.getElementById("userInput");
+const passInput    = document.getElementById("passInput");
+const authMsg      = document.getElementById("authMsg");
+
+const howBtn       = document.getElementById("howBtn");
+const howText      = document.getElementById("howText");
+
+const pauseBtn     = document.getElementById("pauseBtn");
+const listBtn      = document.getElementById("listBtn");
+const topButtons   = document.getElementById("topButtons");
+
+const backToGameBtn   = document.getElementById("backToGameBtn");
+const resumeBtn       = document.getElementById("resumeBtn");
+const restartLevelBtn = document.getElementById("restartLevelBtn");
+const logoutBtn       = document.getElementById("logoutBtn");
+const listUser        = document.getElementById("listUser");
+
+const skinSelect    = document.getElementById("skinSelect");
+const saveSkinBtn   = document.getElementById("saveSkinBtn");
+
+const backToStartBtn = document.getElementById("backToStartBtn");
+const playAgainBtn   = document.getElementById("playAgainBtn");
+
+const hud = document.getElementById("hud");
+const heartsEl = document.getElementById("hearts");
+const hudUser = document.getElementById("hudUser");
+const hudLevel = document.getElementById("hudLevel");
+const hudTime = document.getElementById("hudTime");
+const hudBuff = document.getElementById("hudBuff");
+const hudScore = document.getElementById("hudScore");
+
+const endTitle = document.getElementById("endTitle");
+const endDesc  = document.getElementById("endDesc");
+
+const leaderList = document.getElementById("leaderList");
+const leaderList2 = document.getElementById("leaderList2");
+const leaderListIngame = document.getElementById("leaderListIngame");
+
+const clearRankBtn = document.getElementById("clearRankBtn");
+const clearRankBtn2 = document.getElementById("clearRankBtn2");
+
+// TOUCH CONTROL ELEMENTS (đã rút gọn)
+const touchControls = document.getElementById("touchControls");
+const btnLeft  = document.getElementById("btnLeft");
+const btnRight = document.getElementById("btnRight");
+const btnJump  = document.getElementById("btnJump");
+
+// ===== INPUT =====
+const keys = new Set();
+addEventListener("keydown", e => {
+  if (document.activeElement === userInput || document.activeElement === passInput) {
+    if (e.code === "Enter") {
+      e.preventDefault();
+      loginBtn.click();
+    }
+    return;
+  }
+  keys.add(e.code);
+  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code)) e.preventDefault();
+});
+addEventListener("keyup", e => keys.delete(e.code));
+
+// TOUCH INPUT STATE
+const touchInput = {
+  left:false,
+  right:false,
+  jump:false
+};
+let touchReset = false;
+
+// ===== HELPERS =====
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const aabb = (A,B)=> A.x < B.x+B.w && A.x+A.w > B.x && A.y < B.y+B.h && A.y+A.h > B.y;
+const fmt2 = n => String(n).padStart(2,"0");
+
+// ===== STORAGE KEYS =====
+const USERS_KEY = "mm_users_v1";      // danh sách tài khoản + thống kê
+const SESSION_KEY = "mm_session_v1";  // phiên đăng nhập hiện tại
+const RANK_KEY = "mm_rank_v1";        // lịch sử run cũ (giữ cho khỏi lỗi, nhưng không dùng hiển thị)
+const SKIN_KEY = "mm_skin_v1";
+
+function loadJSON(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return fallback;
+    return JSON.parse(raw);
+  }catch{
+    return fallback;
+  }
+}
+function saveJSON(key, val){
+  try{
+    localStorage.setItem(key, JSON.stringify(val));
+  }catch{}
+}
+
+// ===== USERS / SESSION =====
+function getUsers(){ return loadJSON(USERS_KEY, []); }
+function setUsers(list){ saveJSON(USERS_KEY, list); }
+function getSession(){ return loadJSON(SESSION_KEY, null); }
+function setSession(s){ saveJSON(SESSION_KEY, s); }
+function clearSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch{} }
+function getSkinMap(){ return loadJSON(SKIN_KEY, {}); }
+function setSkinMap(obj){ saveJSON(SKIN_KEY, obj); }
+function showAuthMsg(t, ok=false){
+  authMsg.textContent = t;
+  authMsg.style.color = ok ? "#22c55e" : "#fbbf24";
+}
+
+// ĐẢM BẢO 1 USER CÓ ĐỦ TRƯỜNG THỐNG KÊ
+function ensureUserStatsFor(name){
+  const users = getUsers();
+  const idx = users.findIndex(u=>u.user===name);
+  if(idx === -1) return;
+  const u = users[idx];
+  if(typeof u.bestScore !== "number") u.bestScore = 0;
+  if(typeof u.lastScore !== "number") u.lastScore = 0;
+  if(typeof u.playCount !== "number") u.playCount = 0;
+  if(typeof u.lastPlayed !== "number") u.lastPlayed = 0;
+  users[idx] = u;
+  setUsers(users);
+}
+
+// CẬP NHẬT THỐNG KÊ KHI KẾT THÚC GAME
+function updateUserStatsOnFinish(score){
+  if(!userName) return;
+  const users = getUsers();
+  const idx = users.findIndex(u=>u.user===userName);
+  if(idx === -1) return;
+  const u = users[idx];
+  const now = Date.now();
+  u.lastScore = score;
+  u.lastPlayed = now;
+  u.playCount = (u.playCount || 0) + 1;
+  if(typeof u.bestScore !== "number" || score > u.bestScore){
+    u.bestScore = score;
+  }
+  users[idx] = u;
+  setUsers(users);
+}
+
+// ===== LEADERBOARD =====
+// Dùng USERS_KEY để xếp hạng theo bestScore của từng tài khoản
+function renderRank(ol){
+  const users = getUsers();
+  const ranked = users
+    .map(u => ({
+      name: u.user,
+      best: typeof u.bestScore === "number" ? u.bestScore : 0,
+      playCount: u.playCount || 0
+    }))
+    .filter(u => u.best > 0)
+    .sort((a,b)=> b.best - a.best)
+    .slice(0,10);
+
+  ol.innerHTML = "";
+  if(ranked.length===0){
+    const li=document.createElement("li");
+    li.style.color="#9ca3af";
+    li.textContent="Chưa có người chơi nào có điểm.";
+    ol.appendChild(li);
+    return;
+  }
+  ranked.forEach((item, i)=>{
+    const li=document.createElement("li");
+    const left=document.createElement("span");
+    const right=document.createElement("span");
+    left.textContent = `${i+1}. ${item.name}`;
+    right.textContent = item.best;
+    right.style.color="#fbbf24";
+    right.style.fontWeight="900";
+    li.appendChild(left); li.appendChild(right);
+    ol.appendChild(li);
+  });
+}
+
+// VẪN GIỮ CƠ CHẾ CŨ (LỊCH SỬ CHƠI) ĐỂ KHỎI LỖI, NHƯNG KHÔNG DÙNG HIỂN THỊ
+function loadRank(){ return loadJSON(RANK_KEY, []); }
+function saveRank(list){ saveJSON(RANK_KEY, list); }
+function addRank(name, score){
+  const list = loadRank();
+  list.push({ name, score, ts: Date.now() });
+  list.sort((a,b)=> b.score - a.score || a.ts - b.ts);
+  saveRank(list.slice(0,10));
+}
+
+// ===== AUDIO =====
+let audioCtx = null;
+function ensureAudio(){
+  if(audioCtx) return;
+  try{
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }catch{
+    audioCtx = null;
+  }
+}
+function beep(type="sine", freq=440, dur=0.08, gain=0.12){
+  if(!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(t0); o.stop(t0 + dur);
+}
+function sfxJump(){ beep("square", 520, 0.07, 0.10); }
+function sfxCoin(){ beep("triangle", 880, 0.06, 0.10); setTimeout(()=>beep("triangle", 1175, 0.05, 0.08), 40); }
+function sfxDeath(){ beep("sawtooth", 180, 0.12, 0.14); setTimeout(()=>beep("sawtooth", 120, 0.18, 0.12), 100); }
+function sfxClear(){ beep("triangle", 660, 0.08, 0.12); setTimeout(()=>beep("triangle", 990, 0.10, 0.12), 90); setTimeout(()=>beep("triangle", 1320, 0.10, 0.10), 200); }
+function sfxHit(){ beep("square", 240, 0.07, 0.12); }
+function sfxPower(){ beep("triangle", 740, 0.08, 0.10); setTimeout(()=>beep("triangle", 1040, 0.08, 0.10), 70); }
+function sfxThrow(){ beep("square", 420, 0.05, 0.08); }
+
+// ===== AMBIENCE =====
+let ambience = { type:"clear", node:null, gain:null, running:false };
+function stopAmbience(){
+  if(!audioCtx) return;
+  if(ambience.node){
+    try{ ambience.node.stop(); }catch{}
+    ambience.node.disconnect();
+    ambience.node = null;
+  }
+  if(ambience.gain){
+    ambience.gain.disconnect();
+    ambience.gain = null;
+  }
+  ambience.running = false;
+}
+function startNoiseAmbience(type){
+  ensureAudio();
+  if(!audioCtx) return;
+  stopAmbience();
+  const sr = audioCtx.sampleRate;
+  const dur = 2.0;
+  const len = Math.floor(sr * dur);
+  const buffer = audioCtx.createBuffer(1, len, sr);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<len;i++){
+    let v = (Math.random()*2 - 1);
+    if(type==="rain"){ v *= 0.9; }
+    else if(type==="leaves"){ v *= 0.55; }
+    else if(type==="snow"){ v *= 0.65; }
+    else v=0.0;
+    data[i] = v;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  src.loop = true;
+  const filter = audioCtx.createBiquadFilter();
+  if(type==="rain"){
+    filter.type="highpass"; filter.frequency.value=700;
+  }else if(type==="leaves"){
+    filter.type="bandpass"; filter.frequency.value=520; filter.Q.value=0.6;
+  }else if(type==="snow"){
+    filter.type="lowpass"; filter.frequency.value=320;
+  }else{
+    filter.type="lowpass"; filter.frequency.value=200;
+  }
+  const g = audioCtx.createGain();
+  g.gain.value = (type==="rain") ? 0.035 : (type==="leaves" ? 0.022 : (type==="snow" ? 0.028 : 0.0));
+  src.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+  src.start();
+  ambience = { type, node:src, gain:g, running:true };
+}
+function syncAmbienceToLevel(){
+  if(!audioCtx) return;
+  const wt = weatherForLevel(levelIndex);
+  if(ambience.type !== wt){
+    if(wt==="clear") stopAmbience();
+    else startNoiseAmbience(wt);
+  }
+}
+
+// ===== GAME STATE =====
+let state = "start";
+let userName = "";
+let skinName = "red";
+
+let lives = 3;
+const START_LIVES = 3;
+const MAX_LIVES = 5;
+
+let score = 0;
+let levelIndex = 0;
+let cameraX = 0;
+
+let message = "";
+let messageTimer = 0;
+
+let levelClearTimer = 0;
+let playFrames = 0;
+
+const GRAV = 0.72;
+const MAX_FALL = 16;
+const COYOTE_FRAMES = 7;
+const JUMP_BUFFER_FRAMES = 7;
+
+const JUMP_VELOCITY = -12.2;
+const JUMP_CUT_MULT = 0.55;
+const EXTRA_HOLD_FRAMES = 5;
+const HOLD_BOOST = -0.42;
+
+// SKINS
+const SKINS = {
+  red:   { hat:"#b91c1c", shirt:"#ef4444", pants:"#2563eb", skin:"#fde68a", outline:"rgba(0,0,0,.25)", fx:"#fb7185" },
+  gold:  { hat:"#a16207", shirt:"#f59e0b", pants:"#2563eb", skin:"#fde68a", outline:"rgba(0,0,0,.25)", fx:"#fbbf24" },
+  purple:{ hat:"#6d28d9", shirt:"#8b5cf6", pants:"#0ea5e9", skin:"#fde68a", outline:"rgba(0,0,0,.25)", fx:"#a78bfa" },
+  white: { hat:"#e5e7eb", shirt:"#f8fafc", pants:"#334155", skin:"#fde68a", outline:"rgba(0,0,0,.22)", fx:"#e2e8f0" },
+  black: { hat:"#111827", shirt:"#0b1220", pants:"#1f2937", skin:"#fde68a", outline:"rgba(255,255,255,.08)", fx:"#94a3b8" },
+  cyan:  { hat:"#0891b2", shirt:"#22d3ee", pants:"#1d4ed8", skin:"#fde68a", outline:"rgba(0,0,0,.22)", fx:"#67e8f9" },
+};
+
+// ENTITIES
+function makePlayer(){
+  return {
+    x:80, y:0, w:28, h:38,
+    vx:0, vy:0,
+    onGround:false,
+    facing:1,
+    coyote:0,
+    jumpBuffer:0,
+    holdingJumpFrames:0,
+    wasJumping:false,
+    invincibleFrames:0,
+    jump2Frames:0,
+    immuneFrames:0,
+    slowFrames:0,
+    runTick:0,
+    stepSwap:false,
+    runDustTick:0,
+    safeX:80,
+    safeY:0,
+    safeCamX:0
+  };
+}
+function makeEnemy(x,y){
+  return { x,y, w:30,h:26, vx:-0.6, vy:0, alive:true };
+}
+function makeCoin(x,y){ return { x,y, w:18,h:18, taken:false, bob:Math.random()*Math.PI*2 }; }
+function makeQBox(x,y){ return { x,y, w:TILE,h:TILE, used:false, bump:0 }; }
+function makeFlag(x,y){ return { x,y, w:26,h:160 }; }
+function makeSlowBox(x,y){ return { x,y, w:TILE, h:TILE, active:true }; }
+function makeTurret(x,y){ return { x,y, w:30, h:34, cd: 300 }; }
+function makeDart(x,y,dir){ return { x,y, w:18, h:6, vx: dir*4.2, alive:true }; }
+function makeBird(x,y,seed){ return { x,y, seed, t: Math.random()*999, alive:true }; }
+function makeWater(x,y,wTiles){ return { x,y, w:wTiles*TILE, h:TILE }; }
+function makeCroc(water){
+  return { water, phase: Math.random()*120, up:false, timer:0, interval:420, upTime:80 };
+}
+
+// FX arrays
+const grass = [];
+const runDust = [];
+const footprints = [];
+const popCoins = [];
+const sparkles = [];
+const deathBits = [];
+const weatherDrops = [];
+
+function spawnGrass(x,y,intensity=10){
+  const n = clamp(intensity, 6, 16);
+  for(let i=0;i<n;i++){
+    grass.push({
+      x, y,
+      vx:(Math.random()*2-1)*2.2,
+      vy:-Math.random()*3.3 - 0.8,
+      life: 18 + Math.random()*10,
+      size: 2 + Math.random()*2,
+      rot: Math.random()*Math.PI
+    });
+  }
+}
+function spawnRunDust(x,y,dir){
+  for(let i=0;i<2;i++){
+    runDust.push({
+      x, y,
+      vx: (-dir*0.6) + (Math.random()*0.8-0.4),
+      vy: -Math.random()*0.5,
+      life: 16 + Math.random()*8,
+      r: 2 + Math.random()*2
+    });
+  }
+}
+function spawnFootprint(x,y,dir){
+  footprints.push({ x, y, dir, life: 60 + Math.random()*20, w: 8, h: 3 });
+}
+function spawnPopCoin(x,y){
+  popCoins.push({ x:x-8,y:y-8,w:16,h:16,vy:-7.0,life:50 });
+}
+function spawnSparkle(x,y,color){
+  for(let i=0;i<10;i++){
+    sparkles.push({
+      x,y,
+      vx:(Math.random()*2-1)*2.2,
+      vy:(Math.random()*2-1)*2.2,
+      life: 18+Math.random()*12,
+      r: 1.5+Math.random()*2.5,
+      color
+    });
+  }
+}
+function spawnDeathFx(x,y,color){
+  for(let i=0;i<18;i++){
+    deathBits.push({
+      x,y,
+      vx:(Math.random()*2-1)*3.2,
+      vy:(Math.random()*-1)*3.6,
+      life: 30+Math.random()*18,
+      r: 2+Math.random()*3,
+      color
+    });
+  }
+}
+function showMsg(text,frames){ message=text; messageTimer=frames; }
+function addScore(n){ score+=n; }
+
+// THEME & WEATHER
+const THEME_CYCLE = [
+  { name:"SÁNG SỚM", skyTop:"#7dd3fc", skyMid:"#e0f2fe", groundTint:"rgba(34,197,94,.24)", sun:true,  moon:false, fog:0.00 },
+  { name:"TỐI",     skyTop:"#0b1020", skyMid:"#111827", groundTint:"rgba(59,130,246,.10)", sun:false, moon:true,  fog:0.10 },
+  { name:"TRƯA",    skyTop:"#60a5fa", skyMid:"#dbeafe", groundTint:"rgba(34,197,94,.20)", sun:true,  moon:false, fog:0.00 },
+  { name:"CHIỀU",   skyTop:"#fb7185", skyMid:"#fde68a", groundTint:"rgba(245,158,11,.18)", sun:true,  moon:false, fog:0.04 },
+  { name:"TỐI",     skyTop:"#0b1020", skyMid:"#111827", groundTint:"rgba(59,130,246,.10)", sun:false, moon:true,  fog:0.10 },
+];
+function themeForLevel(idx){ return THEME_CYCLE[idx % THEME_CYCLE.length]; }
+function weatherForLevel(idx){
+  const r = idx % 4;
+  if(r===1) return "rain";
+  if(r===2) return "leaves";
+  if(r===3) return "snow";
+  return "clear";
+}
+
+// MAP GENERATION
+function rngFromSeed(seed){
+  let t = seed >>> 0;
+  return function(){
+    t ^= t << 13; t ^= t >>> 17; t ^= t << 5;
+    return ((t >>> 0) / 4294967296);
+  }
+}
+function emptyGrid(cols, rows){
+  const g = [];
+  for(let r=0;r<rows;r++) g.push(".".repeat(cols));
+  return g;
+}
+function setCell(lines, r, c, ch){
+  if(r<0||r>=lines.length||c<0||c>=lines[0].length) return lines;
+  const s = lines[r];
+  lines[r] = s.slice(0,c) + ch + s.slice(c+1);
+  return lines;
+}
+function fillRect(lines, r0, c0, rh, cw, ch){
+  for(let r=r0; r<r0+rh; r++){
+    for(let c=c0; c<c0+cw; c++) setCell(lines, r, c, ch);
+  }
+  return lines;
+}
+
+function decorateGrid(baseLines, levelNo){
+  const cols = baseLines[0].length;
+  const rows = baseLines.length;
+  const rng = rngFromSeed(12345 + levelNo*999);
+
+  let diff = 1;
+  if(levelNo <= 2) diff = 1;
+  else if(levelNo <= 4) diff = 2;
+  else diff = 2 + Math.min(3, Math.floor((levelNo - 4) / 2));
+
+  const EXTRA_PITS     = diff - 1;
+  const EXTRA_ENEMIES  = (diff - 1) * 2;
+  const EXTRA_TURRETS  = (diff >= 2) ? 1 : 0;
+  const EXTRA_SLOWBOX  = (diff >= 3) ? 2 : 0;
+  const EXTRA_PLATS    = (diff - 1) * 2;
+  const EXTRA_PILLARS  = (diff - 1) * 2;
+
+  baseLines[rows-1] = "#".repeat(cols);
+  baseLines[rows-2] = "#".repeat(cols);
+
+  setCell(baseLines, rows-3, 4, "S");
+  setCell(baseLines, 5, cols-4, "F");
+
+  const pillarCount = (levelNo<=2 ? 4 : 5) + Math.floor(rng()*3) + EXTRA_PILLARS;
+  for(let i=0;i<pillarCount;i++){
+    const c = 12 + Math.floor(rng()*(cols-24));
+    const h = (levelNo<=2) ? 2 : (2 + Math.floor(rng()*2));
+    fillRect(baseLines, rows-2-h, c, h, 1, "#");
+  }
+
+  const platCount = 8 + EXTRA_PLATS;
+  for(let i=0;i<platCount;i++){
+    const c = 12 + Math.floor(rng()*(cols-24));
+    const r = (levelNo<=2) ? (6 + Math.floor(rng()*4)) : (6 + Math.floor(rng()*5));
+    const w = 3 + Math.floor(rng()*4);
+    fillRect(baseLines, r, c, 1, w, "#");
+  }
+
+  for(let i=0;i<26;i++){
+    const c = 8 + Math.floor(rng()*(cols-16));
+    const r = 4 + Math.floor(rng()*(rows-8));
+    if(baseLines[r][c]===".") setCell(baseLines, r, c, "o");
+  }
+
+  for(let i=0;i<10;i++){
+    const c = 12 + Math.floor(rng()*(cols-24));
+    const r = 6 + Math.floor(rng()*4);
+    if(baseLines[r][c]===".") setCell(baseLines, r, c, "?");
+  }
+
+  const pitCount = 2 + EXTRA_PITS;
+  for(let i=0;i<pitCount;i++){
+    const pitW = 2 + Math.floor(rng()*2);
+    const c0 = 14 + Math.floor(rng()*(cols-28));
+    for(let c=c0;c<c0+pitW;c++){
+      setCell(baseLines, rows-2, c, ".");
+      setCell(baseLines, rows-1, c, ".");
+      for(let rr=rows-6; rr<rows-2; rr++){
+        if(baseLines[rr][c]==="#") setCell(baseLines, rr, c, ".");
+        if(baseLines[rr][c]==="?") setCell(baseLines, rr, c, ".");
+      }
+    }
+  }
+
+  for(let i=0;i<4 + EXTRA_SLOWBOX;i++){
+    const c = 10 + Math.floor(rng()*(cols-20));
+    const r = rows-3;
+    if(baseLines[r][c]===".") setCell(baseLines, r, c, "b");
+  }
+
+  const eCount = 5 + Math.floor(rng()*3) + EXTRA_ENEMIES;
+  for(let i=0;i<eCount;i++){
+    const c = 12 + Math.floor(rng()*(cols-24));
+    const r = rows-3;
+    if(baseLines[r][c]===".") setCell(baseLines, r, c, "e");
+  }
+
+  const turretCount = 1 + Math.floor(rng()*2) + EXTRA_TURRETS;
+  for(let i=0;i<turretCount;i++){
+    const c = 18 + Math.floor(rng()*(cols-36));
+    const r = rows-3;
+    if(baseLines[r][c]===".") setCell(baseLines, r, c, "t");
+  }
+
+  const birdStep = (levelNo <= 2) ? 10 : (levelNo <= 4 ? 7 : 6);
+  for(let c=12; c<cols-10; c+=birdStep){
+    if(rng() < 0.55){
+      const r = 2 + Math.floor(rng()*3);
+      if(baseLines[r][c]===".") setCell(baseLines, r, c, "^");
+    }
+  }
+
+  if(levelNo===2){
+    for(let c=6;c<=18;c++){
+      setCell(baseLines, rows-3, c, ".");
+      setCell(baseLines, rows-4, c, ".");
+    }
+  }
+
+  return baseLines;
+}
+
+function buildLevelFromGrid(lines){
+  const solidTiles = [];
+  const blocks = [];
+  const coins = [];
+  const enemies = [];
+  const slowBoxes = [];
+  const turrets = [];
+  const birds = [];
+  const waters = [];
+  const crocs = [];
+
+  let flag = null;
+  let spawn = { x:80, y:0 };
+
+  const rows = lines.length;
+  const cols = lines[0].length;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const ch = lines[r][c];
+      const x = c*TILE;
+      const y = r*TILE;
+      if(ch==="#") solidTiles.push({x,y,w:TILE,h:TILE});
+      if(ch==="?") blocks.push(makeQBox(x,y));
+      if(ch==="o") coins.push(makeCoin(x+11,y+11));
+      if(ch==="e") enemies.push(makeEnemy(x+5, y+12));
+      if(ch==="b") slowBoxes.push(makeSlowBox(x,y));
+      if(ch==="t") turrets.push(makeTurret(x+5, y+6));
+      if(ch==="^") birds.push(makeBird(x, y, r*999+c));
+      if(ch==="F") flag = makeFlag(x+10, y-120);
+      if(ch==="S") spawn = { x:x+10, y:y-60 };
+    }
+  }
+
+  const width = cols*TILE;
+  const height = rows*TILE;
+  if(!flag) flag = makeFlag(width-140, 80);
+
+  const waterRow = rows-1;
+  let col=0;
+  while(col<cols){
+    if(lines[waterRow][col]==="."){
+      let c0 = col;
+      while(col<cols && lines[waterRow][col]===".") col++;
+      const segW = col - c0;
+      const water = makeWater(c0*TILE, (rows-1)*TILE, segW);
+      waters.push(water);
+      crocs.push(makeCroc(water));
+    }else col++;
+  }
+
+  const goal = { x: width - TILE*2, y: 0, w: TILE*2, h: height };
+
+  return { cols, rows, width, height, solidTiles, blocks, coins, enemies, slowBoxes, turrets, birds, waters, crocs, flag, goal, spawn };
+}
+
+function cloneLevel(idx){
+  const cols = 100;
+  const rows = 14;
+  const base = emptyGrid(cols, rows);
+  const decorated = decorateGrid(base, idx + 1);
+  return buildLevelFromGrid(decorated);
+}
+
+const MAP_COUNT = 10;
+let level = cloneLevel(levelIndex);
+let player = makePlayer();
+
+// HUD
+function heartSVG(filled=true){
+  const fill = filled ? "#ef4444" : "rgba(239,68,68,.22)";
+  return `<svg class="heart" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="${fill}" d="M12 21s-7.2-4.6-9.6-9C.6 8.2 2.5 5.5 5.6 5.1c1.8-.2 3.5.6 4.4 2 1-1.4 2.6-2.2 4.4-2 3.1.4 5 3.1 3.2 6.9C19.2 16.4 12 21 12 21z"/>
+  </svg>`;
+}
+function renderHUD(){
+  const playing = (state==="playing"||state==="paused"||state==="list"||state==="levelclear");
+  hud.style.display = playing ? "flex" : "none";
+  topButtons.style.display = playing ? "flex" : "none";
+
+  hudUser.textContent = `@${userName}`;
+  hudLevel.textContent = `Level ${levelIndex+1}/${MAP_COUNT}`;
+  hudScore.textContent = `Score: ${score}`;
+
+  const secs = Math.floor(playFrames/60);
+  hudTime.textContent = `Time: ${fmt2(Math.floor(secs/60))}:${fmt2(secs%60)}`;
+
+  const buffs=[];
+  if(player.invincibleFrames>0) buffs.push(`Bất tử ${Math.ceil(player.invincibleFrames/60)}s`);
+  if(player.jump2Frames>0) buffs.push(`Nhảy x2 ${Math.ceil(player.jump2Frames/60)}s`);
+  if(player.immuneFrames>0) buffs.push(`Miễn nhiễm ${Math.ceil(player.immuneFrames/60)}s`);
+  if(player.slowFrames>0) buffs.push(`Chậm ${Math.ceil(player.slowFrames/60)}s`);
+  hudBuff.textContent = buffs.length ? ("• " + buffs.join(" | ")) : "—";
+
+  heartsEl.innerHTML = "";
+  for(let i=0;i<MAX_LIVES;i++){
+    const div = document.createElement("div");
+    div.innerHTML = heartSVG(i<lives);
+    heartsEl.appendChild(div.firstElementChild);
+  }
+}
+
+// SOLIDS
+function allSolids(){
+  const solids = level.solidTiles.slice();
+  for(const b of level.blocks) solids.push({x:b.x,y:b.y,w:b.w,h:b.h,_block:b});
+  for(const sb of level.slowBoxes) solids.push({x:sb.x,y:sb.y,w:sb.w,h:sb.h,_slow:sb});
+  return solids;
+}
+
+function applyRandomPower(){
+  sfxPower();
+  const r = Math.floor(Math.random()*3);
+  if(r===0){
+    player.invincibleFrames = 60*7;
+    showMsg("Nhận: BẤT TỬ (7s)", 80);
+    addScore(80);
+  }else if(r===1){
+    player.jump2Frames = 60*7;
+    showMsg("Nhận: NHẢY x2 (7s)", 80);
+    addScore(80);
+  }else{
+    const before = lives;
+    lives = clamp(lives+1, 0, MAX_LIVES);
+    if(lives>before){
+      showMsg("Nhận: +1 MẠNG", 80);
+      addScore(120);
+    }else{
+      showMsg("Mạng đã tối đa!", 60);
+      addScore(30);
+    }
+  }
+}
+function triggerBlock(block){
+  if(block.used) return;
+  block.used = true;
+  block.bump = 10;
+  applyRandomPower();
+  spawnPopCoin(block.x + TILE/2, block.y - 12);
+}
+
+function enemySpeedForLevel(idx){
+  const lv = idx + 1;
+  if(lv <= 2) return 0.45;
+  if(lv <= 4) return 0.75;
+  const t = (lv - 4);
+  return clamp(0.75 + t*0.18, 0.75, 1.85);
+}
+
+function moveAndCollide(ent){
+  const prevOnGround = ent.onGround;
+  const prevVy = ent.vy;
+  ent.onGround = false;
+
+  ent.x += ent.vx;
+  for(const s of allSolids()){
+    if(aabb(ent,s)){
+      if(ent.vx>0) ent.x = s.x - ent.w;
+      else if(ent.vx<0) ent.x = s.x + s.w;
+      ent.vx = 0;
+      if(s._block && !s._block.used && ent.vy < -2) triggerBlock(s._block);
+    }
+  }
+
+  ent.y += ent.vy;
+  for(const s of allSolids()){
+    if(aabb(ent,s)){
+      if(ent.vy>0){
+        ent.y = s.y - ent.h;
+        ent.vy = 0;
+        ent.onGround = true;
+      }else if(ent.vy<0){
+        ent.y = s.y + s.h;
+        ent.vy = 0;
+        if(s._block && !s._block.used) triggerBlock(s._block);
+      }
+    }
+  }
+
+  if(!prevOnGround && ent.onGround && prevVy > 6.5){
+    spawnGrass(ent.x + ent.w/2, ent.y + ent.h, Math.round(prevVy*1.2));
+  }
+
+  for(const s of allSolids()){
+    if(s._slow && s._slow.active && aabb(ent,s)){
+      ent.slowFrames = Math.max(ent.slowFrames, 60*2);
+      showMsg("Dính hộp đen: CHẬM!", 40);
+    }
+  }
+}
+
+// ENEMIES / TURRETS / WATER / BIRDS
+function updateEnemy(e){
+  if(!e.alive) return;
+  const sp = enemySpeedForLevel(levelIndex);
+  e.vx = (e.vx<0 ? -sp : sp);
+  e.vy += GRAV*0.9;
+  e.vy = clamp(e.vy, -20, MAX_FALL);
+
+  e.x += e.vx;
+  for(const s of allSolids()){
+    if(aabb(e,s)){
+      if(e.vx>0) e.x = s.x - e.w;
+      else e.x = s.x + s.w;
+      e.vx *= -1;
+    }
+  }
+
+  e.y += e.vy;
+  let grounded=false;
+  for(const s of allSolids()){
+    if(aabb(e,s)){
+      if(e.vy>0){ e.y = s.y - e.h; e.vy=0; grounded=true; }
+      else if(e.vy<0){ e.y = s.y + s.h; e.vy=0; }
+    }
+  }
+
+  if(grounded){
+    const aheadX = e.vx>0 ? e.x+e.w+2 : e.x-2;
+    const footY  = e.y+e.h+2;
+    const probe = {x:aheadX, y:footY, w:2, h:2};
+    let hasGround=false;
+    for(const s of allSolids()){ if(aabb(probe,s)){ hasGround=true; break; } }
+    if(!hasGround) e.vx *= -1;
+  }
+}
+
+const darts = [];
+function updateTurrets(){
+  for(const t of level.turrets){
+    t.cd--;
+    if(t.cd<=0){
+      t.cd = 300;
+      const dir = (player.x < t.x) ? -1 : 1;
+      darts.push(makeDart(t.x + 10, t.y + 16, dir));
+      sfxThrow();
+    }
+  }
+  for(const d of darts){
+    if(!d.alive) continue;
+    d.x += d.vx;
+    for(const s of allSolids()){
+      if(aabb(d,s)){ d.alive=false; break; }
+    }
+    if(d.alive && aabb(player,d)){
+      d.alive=false;
+      loseLife("Bị phi tiêu!");
+    }
+    if(d.x < 0 || d.x > level.width) d.alive=false;
+  }
+  for(let i=darts.length-1;i>=0;i--) if(!darts[i].alive) darts.splice(i,1);
+}
+
+function updateCrocs(){
+  for(const c of level.crocs){
+    c.timer++;
+    if(!c.up && c.timer >= c.interval){
+      c.up = true;
+      c.timer = 0;
+    }
+    if(c.up && c.timer >= c.upTime){
+      c.up = false;
+      c.timer = 0;
+    }
+    if(c.up){
+      const w = c.water;
+      const crocBox = {
+        x: w.x + w.w*0.15,
+        y: w.y - 18,
+        w: w.w*0.70,
+        h: 18
+      };
+      if(aabb(player, crocBox)){
+        loseLife("Chạm cá sấu!");
+      }
+    }
+  }
+}
+
+function updateBirds(){
+  for(const b of level.birds){
+    b.t += 0.02;
+    b.x += Math.sin(b.t + b.seed)*0.2;
+  }
+}
+
+function spawnWeather(){
+  const type = weatherForLevel(levelIndex);
+  if(type==="clear") return;
+  const n = (type==="rain") ? 3 : 2;
+  for(let i=0;i<n;i++){
+    weatherDrops.push({
+      x: cameraX + Math.random()*W,
+      y: -10,
+      vy: (type==="rain") ? 9+Math.random()*4 : 2+Math.random()*2,
+      vx: (type==="rain") ? -1.0 : (type==="leaves" ? (Math.random()*0.8-0.4) : 0),
+      life: 120,
+      type
+    });
+  }
+}
+function tickWeather(){
+  spawnWeather();
+  for(const p of weatherDrops){
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+  }
+  for(let i=weatherDrops.length-1;i>=0;i--){
+    const p = weatherDrops[i];
+    if(p.life<=0 || p.y>H+30) weatherDrops.splice(i,1);
+  }
+}
+
+function playerInWater(){
+  for(const w of level.waters){
+    const waterBox = { x:w.x, y:w.y, w:w.w, h:w.h };
+    if(aabb(player, waterBox)) return true;
+  }
+  return false;
+}
+function updateSafePoint(){
+  if(!player.onGround) return;
+  const probe = { x: player.x + 4, y: player.y + player.h + 2, w: player.w - 8, h: 2 };
+  for(const w of level.waters){
+    const waterTop = { x:w.x, y:w.y, w:w.w, h:2 };
+    if(aabb(probe, waterTop)) return;
+  }
+  player.safeX = player.x;
+  player.safeY = player.y;
+  player.safeCamX = cameraX;
+}
+
+// PLAYER UPDATE
+let jumpPressedLast=false;
+function updatePlayer(){
+  const left  = keys.has("ArrowLeft") || keys.has("KeyA") || touchInput.left;
+  const right = keys.has("ArrowRight")|| keys.has("KeyD") || touchInput.right;
+  const jump  = keys.has("Space")|| keys.has("ArrowUp")|| keys.has("KeyW") || touchInput.jump;
+
+  const baseMaxSpeed = 2.85;
+  const accel = 0.26;
+  const frictionGround = 0.74;
+  const frictionAir = 0.92;
+
+  let maxSpeed = baseMaxSpeed;
+  if(player.slowFrames>0) maxSpeed *= 0.55;
+
+  if(left){ player.vx -= accel; player.facing=-1; }
+  if(right){ player.vx += accel; player.facing= 1; }
+  if(!left && !right) player.vx *= player.onGround ? frictionGround : frictionAir;
+  player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
+
+  const justPressedJump = jump && !jumpPressedLast;
+  const justReleasedJump = !jump && jumpPressedLast;
+  jumpPressedLast = jump;
+
+  if(justPressedJump) player.jumpBuffer = JUMP_BUFFER_FRAMES;
+  else if(player.jumpBuffer>0) player.jumpBuffer--;
+
+  if(player.onGround) player.coyote = COYOTE_FRAMES;
+  else if(player.coyote>0) player.coyote--;
+
+  const jumpMul = (player.jump2Frames>0) ? 1.35 : 1.0;
+
+  if(player.jumpBuffer>0 && (player.onGround || player.coyote>0)){
+    player.vy = JUMP_VELOCITY * jumpMul;
+    player.onGround=false;
+    player.coyote=0;
+    player.jumpBuffer=0;
+    player.holdingJumpFrames = EXTRA_HOLD_FRAMES;
+    player.wasJumping=true;
+    sfxJump();
+  }
+
+  if(player.wasJumping && jump && player.holdingJumpFrames>0 && player.vy<0){
+    player.vy += HOLD_BOOST;
+    player.holdingJumpFrames--;
+  }
+  if(justReleasedJump && player.vy<0){
+    player.vy *= JUMP_CUT_MULT;
+    player.holdingJumpFrames=0;
+  }
+
+  player.vy += GRAV;
+  player.vy = clamp(player.vy, -22, MAX_FALL);
+
+  player.runTick++;
+  if(player.onGround && Math.abs(player.vx) > 1.35){
+    player.runDustTick++;
+    if(player.runDustTick % 6 === 0){
+      spawnRunDust(player.x + player.w/2, player.y + player.h - 2, player.facing);
+    }
+    if(player.runDustTick % 10 === 0){
+      const fx = player.x + (player.facing===1 ? 6 : 16);
+      const fy = player.y + player.h + 4;
+      spawnFootprint(fx, fy, player.facing);
+      player.stepSwap = !player.stepSwap;
+    }
+  }else{
+    player.runDustTick = 0;
+  }
+
+  moveAndCollide(player);
+  if(player.onGround) player.wasJumping=false;
+
+  updateSafePoint();
+
+  if(player.invincibleFrames>0) player.invincibleFrames--;
+  if(player.jump2Frames>0) player.jump2Frames--;
+  if(player.immuneFrames>0) player.immuneFrames--;
+  if(player.slowFrames>0) player.slowFrames--;
+
+  for(const c of level.coins){
+    if(!c.taken && aabb(player,c)){
+      c.taken=true;
+      addScore(10);
+      showMsg("+10 (Xu)", 18);
+      sfxCoin();
+      spawnSparkle(c.x+9, c.y+9, "#fbbf24");
+    }
+  }
+  for(const pc of popCoins){
+    if(pc.life>0 && aabb(player,pc)){
+      pc.life=0;
+      addScore(25);
+      showMsg("+25 (Thưởng)", 18);
+      sfxCoin();
+    }
+  }
+
+  for(const e of level.enemies){
+    if(!e.alive) continue;
+    if(aabb(player,e)){
+      const playerBottomPrev = (player.y - player.vy) + player.h;
+      const enemyTop = e.y + 2;
+      if(player.vy>0 && playerBottomPrev <= enemyTop){
+        e.alive=false;
+        player.vy = -8.6;
+        addScore(200);
+        showMsg("+200 (Đạp địch)", 30);
+        spawnSparkle(e.x+12, e.y+8, SKINS[skinName].fx);
+      }else{
+        loseLife("Chạm quái!");
+        return;
+      }
+    }
+  }
+
+  if(playerInWater()){
+    loseLife("Rơi xuống nước!");
+    return;
+  }
+
+  if(player.y > level.height + 220){
+    loseLife("Rơi khỏi map!");
+    return;
+  }
+
+  if(aabb(player, level.goal)){
+    triggerLevelClear();
+    return;
+  }
+
+  cameraX = clamp(player.x - W*0.35, 0, Math.max(0, level.width - W));
+}
+
+// PARTICLES
+function tickParticles(){
+  for(const pc of popCoins){
+    if(pc.life<=0) continue;
+    pc.vy += 0.42;
+    pc.y += pc.vy;
+    pc.life--;
+  }
+  for(const g of grass){
+    g.vy += 0.18;
+    g.x += g.vx;
+    g.y += g.vy;
+    g.vx *= 0.92;
+    g.life--;
+  }
+  for(const d of runDust){
+    d.vy += 0.10;
+    d.x += d.vx;
+    d.y += d.vy;
+    d.life--;
+  }
+  for(const fp of footprints) fp.life--;
+  for(const sp of sparkles){
+    sp.x += sp.vx;
+    sp.y += sp.vy;
+    sp.vx *= 0.92;
+    sp.vy *= 0.92;
+    sp.life--;
+  }
+  for(const db of deathBits){
+    db.vy += 0.14;
+    db.x += db.vx;
+    db.y += db.vy;
+    db.vx *= 0.96;
+    db.life--;
+  }
+  for(let i=grass.length-1;i>=0;i--) if(grass[i].life<=0) grass.splice(i,1);
+  for(let i=runDust.length-1;i>=0;i--) if(runDust[i].life<=0) runDust.splice(i,1);
+  for(let i=footprints.length-1;i>=0;i--) if(footprints[i].life<=0) footprints.splice(i,1);
+  for(let i=sparkles.length-1;i>=0;i--) if(sparkles[i].life<=0) sparkles.splice(i,1);
+  for(let i=deathBits.length-1;i>=0;i--) if(deathBits[i].life<=0) deathBits.splice(i,1);
+}
+
+// LIFE / RESPAWN / LEVEL
+function loseLife(reason){
+  if(state!=="playing") return;
+  if(player.invincibleFrames>0 || player.immuneFrames>0){
+    showMsg("Miễn nhiễm!", 30);
+    return;
+  }
+  lives--;
+  sfxHit();
+  const skin = SKINS[skinName];
+  spawnDeathFx(player.x + player.w/2, player.y + player.h/2, skin.fx);
+  showMsg(reason || "Mất 1 mạng!", 45);
+  if(lives<=0){
+    endGame(false);
+  }else{
+    player.immuneFrames = 60*3;
+    player.vx = 0; player.vy = 0;
+    player.x = player.safeX;
+    player.y = player.safeY;
+    cameraX = player.safeCamX;
+    player.y -= 8;
+  }
+}
+
+function resetLevelToCurrent(keepScore=true, keepLives=true){
+  level = cloneLevel(levelIndex);
+  player = makePlayer();
+  player.x = level.spawn.x;
+  player.y = level.spawn.y;
+  player.safeX = player.x;
+  player.safeY = player.y;
+  cameraX = 0;
+  player.safeCamX = 0;
+  message=""; messageTimer=0;
+  darts.length = 0;
+  weatherDrops.length = 0;
+  grass.length = 0;
+  runDust.length = 0;
+  footprints.length = 0;
+  popCoins.length = 0;
+  sparkles.length = 0;
+  deathBits.length = 0;
+  if(!keepScore) score=0;
+  if(!keepLives) lives=START_LIVES;
+  syncAmbienceToLevel();
+}
+
+function startGameFresh(){
+  lives = START_LIVES;
+  score = 0;
+  levelIndex = 0;
+  playFrames = 0;
+  resetLevelToCurrent(true,true);
+  state = "playing";
+  startOverlay.style.display="none";
+  listOverlay.style.display="none";
+  endOverlay.style.display="none";
+  renderHUD();
+}
+
+function triggerLevelClear(){
+  if(state!=="playing") return;
+  sfxClear();
+  state="levelclear";
+  levelClearTimer = 50;
+  addScore(500);
+  showMsg(`MAP ${levelIndex+1} hoàn thành! (+500)`, 80);
+}
+
+function nextLevel(){
+  levelIndex++;
+  if(levelIndex>=MAP_COUNT){
+    endGame(true);
+    return;
+  }
+  resetLevelToCurrent(true,true);
+}
+
+// ===== END GAME: CẬP NHẬT THỐNG KÊ USER + RANK =====
+function endGame(won){
+  state="end";
+  topButtons.style.display="none";
+  hud.style.display="none";
+  listOverlay.style.display="none";
+
+  // Cập nhật thống kê cho tài khoản đang chơi
+  updateUserStatsOnFinish(score);
+
+  // Vẫn ghi lịch sử run cũ
+  addRank(userName, score);
+
+  // Vẽ lại bảng xếp hạng theo bestScore
+  renderRank(leaderList);
+  renderRank(leaderList2);
+  renderRank(leaderListIngame);
+
+  endOverlay.style.display="flex";
+  if(won){
+    endTitle.textContent="YOU WIN!";
+    endDesc.textContent=`Chúc mừng @${userName}! Tổng điểm: ${score}. Điểm cao nhất của bạn đã được lưu trên thiết bị.`;
+  }else{
+    endTitle.textContent="GAME OVER";
+    endDesc.textContent=`@${userName} hết tim. Tổng điểm: ${score}. Điểm cao nhất của bạn đã được lưu trên thiết bị.`;
+    sfxDeath();
+  }
+  stopAmbience();
+}
+
+// DRAW
+function drawBackground(){
+  const theme = themeForLevel(levelIndex);
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, theme.skyTop);
+  g.addColorStop(0.55, theme.skyMid);
+  g.addColorStop(1, "#0b1220");
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+
+  if(theme.sun){
+    ctx.fillStyle="rgba(255,255,255,.20)";
+    ctx.beginPath(); ctx.arc(W-120, 92, 42, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="rgba(253,224,71,.95)";
+    ctx.beginPath(); ctx.arc(W-124, 96, 34, 0, Math.PI*2); ctx.fill();
+  }
+  if(theme.moon){
+    ctx.fillStyle="rgba(255,255,255,.20)";
+    ctx.beginPath(); ctx.arc(W-120, 96, 36, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="rgba(226,232,240,.95)";
+    ctx.beginPath(); ctx.arc(W-126, 100, 28, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="rgba(11,16,32,.95)";
+    ctx.beginPath(); ctx.arc(W-114, 92, 26, 0, Math.PI*2); ctx.fill();
+  }
+
+  ctx.fillStyle="rgba(255,255,255,.50)";
+  for(let i=0;i<8;i++){
+    const cx=(i*260 - (cameraX*0.25)%260) + 80;
+    const cy=60 + (i%2)*30;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI*2);
+    ctx.arc(cx+22, cy+6, 18, 0, Math.PI*2);
+    ctx.arc(cx+42, cy, 24, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = theme.groundTint;
+  ctx.fillRect(0, H*0.70, W, H*0.30);
+
+  if(theme.fog>0){
+    ctx.fillStyle = `rgba(0,0,0,${theme.fog})`;
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+function drawTile(x,y,kind,theme){
+  if(kind==="ground"){
+    ctx.fillStyle = (theme.sun) ? "#2f7a2f" : "#1f3b2a";
+    ctx.fillRect(x,y,TILE,TILE);
+    ctx.fillStyle = "rgba(255,255,255,.10)";
+    ctx.fillRect(x,y,TILE,8);
+  }else if(kind==="q"){
+    ctx.fillStyle = (theme.sun) ? "#f59e0b" : "#d97706";
+    ctx.fillRect(x,y,TILE,TILE);
+    ctx.fillStyle="rgba(255,255,255,.22)";
+    ctx.fillRect(x+4,y+4,TILE-8,TILE-8);
+    ctx.fillStyle="#111";
+    ctx.font="bold 22px system-ui";
+    ctx.fillText("?", x+14, y+27);
+  }else if(kind==="used"){
+    ctx.fillStyle="#d6d3d1";
+    ctx.fillRect(x,y,TILE,TILE);
+    ctx.fillStyle="rgba(0,0,0,.18)";
+    ctx.fillRect(x+5,y+5,TILE-10,TILE-10);
+  }else if(kind==="slow"){
+    ctx.fillStyle="#0b0f14";
+    ctx.fillRect(x,y,TILE,TILE);
+    ctx.fillStyle="rgba(255,255,255,.10)";
+    ctx.fillRect(x+6,y+6,TILE-12,TILE-12);
+  }
+}
+
+function drawWorld(){
+  drawBackground();
+  const theme = themeForLevel(levelIndex);
+
+  for(const s of level.solidTiles){
+    const x=s.x - cameraX;
+    if(x<-TILE || x>W+TILE) continue;
+    drawTile(Math.round(x), s.y, "ground", theme);
+  }
+
+  for(const w of level.waters){
+    const x = Math.round(w.x - cameraX);
+    if(x<-w.w || x>W+w.w) continue;
+    ctx.fillStyle = (theme.moon) ? "rgba(59,130,246,.35)" : "rgba(14,165,233,.30)";
+    ctx.fillRect(x, w.y, w.w, TILE);
+    ctx.fillStyle = "rgba(255,255,255,.14)";
+    for(let i=0;i<w.w;i+=22){
+      ctx.fillRect(x+i, w.y+8+(Math.sin((performance.now()/300)+(i*0.1))*2), 16, 3);
+    }
+  }
+
+  for(const c of level.crocs){
+    if(!c.up) continue;
+    const w = c.water;
+    const x = Math.round(w.x - cameraX + w.w*0.15);
+    const y = Math.round(w.y - 18);
+    const ww = Math.round(w.w*0.70);
+    ctx.fillStyle = "#16a34a";
+    ctx.fillRect(x, y, ww, 18);
+    ctx.fillStyle="rgba(255,255,255,.28)";
+    ctx.fillRect(x+6,y+5, ww-12, 4);
+    ctx.fillStyle="#111";
+    for(let i=10;i<ww-10;i+=16){
+      ctx.fillRect(x+i, y+13, 4, 3);
+    }
+  }
+
+  for(const sb of level.slowBoxes){
+    const x = sb.x - cameraX;
+    if(x<-TILE||x>W+TILE) continue;
+    drawTile(Math.round(x), sb.y, "slow", theme);
+  }
+
+  for(const b of level.blocks){
+    const x=b.x - cameraX;
+    if(x<-TILE || x>W+TILE) continue;
+    const bumpY = (b.bump>0) ? -b.bump : 0;
+    drawTile(Math.round(x), Math.round(b.y + bumpY), b.used ? "used":"q", theme);
+  }
+
+  for(const c of level.coins){
+    if(c.taken) continue;
+    c.bob += 0.08;
+    const x=Math.round(c.x - cameraX);
+    const y=Math.round(c.y + Math.sin(c.bob)*3);
+    ctx.fillStyle="#fbbf24";
+    ctx.beginPath();
+    ctx.arc(x + c.w/2, y + c.h/2, 9, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle="rgba(0,0,0,.25)";
+    ctx.stroke();
+  }
+
+  for(const pc of popCoins){
+    if(pc.life<=0) continue;
+    const x=Math.round(pc.x - cameraX);
+    const y=Math.round(pc.y);
+    ctx.fillStyle="#fde047";
+    ctx.beginPath();
+    ctx.arc(x + pc.w/2, y + pc.h/2, 8, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  for(const t of level.turrets){
+    const x=Math.round(t.x - cameraX);
+    const y=Math.round(t.y);
+    ctx.fillStyle="#334155";
+    ctx.fillRect(x, y, t.w, t.h);
+    ctx.fillStyle="rgba(255,255,255,.20)";
+    ctx.fillRect(x+4, y+4, t.w-8, 6);
+    ctx.fillStyle="#111";
+    ctx.fillRect(x+10, y+16, 10, 4);
+  }
+
+  for(const d of darts){
+    const x=Math.round(d.x - cameraX);
+    const y=Math.round(d.y);
+    ctx.fillStyle="#0f172a";
+    ctx.fillRect(x,y,d.w,d.h);
+    ctx.fillStyle="#e5e7eb";
+    ctx.fillRect(x+(d.vx>0? d.w-4:0), y+1, 4, d.h-2);
+  }
+
+  for(const e of level.enemies){
+    if(!e.alive) continue;
+    const x=Math.round(e.x - cameraX);
+    const y=Math.round(e.y);
+    ctx.fillStyle="#7c3aed";
+    ctx.fillRect(x,y,e.w,e.h);
+    ctx.fillStyle="rgba(255,255,255,.25)";
+    ctx.fillRect(x+4,y+4,e.w-8,6);
+    ctx.fillStyle="#111";
+    ctx.fillRect(x+8,y+10,3,3);
+    ctx.fillRect(x+19,y+10,3,3);
+  }
+
+  for(const b of level.birds){
+    const x=Math.round(b.x - cameraX);
+    const y=Math.round(b.y);
+    if(x<-40||x>W+40) continue;
+    ctx.strokeStyle="rgba(255,255,255,.65)";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(x, y+6);
+    ctx.quadraticCurveTo(x+8, y, x+16, y+6);
+    ctx.quadraticCurveTo(x+24, y, x+32, y+6);
+    ctx.stroke();
+    ctx.lineWidth=1;
+  }
+
+  for(const fp of footprints){
+    const x = Math.round(fp.x - cameraX);
+    const y = Math.round(fp.y);
+    ctx.globalAlpha = Math.max(0, fp.life/80);
+    ctx.fillStyle = "rgba(0,0,0,.28)";
+    ctx.fillRect(x, y, fp.w, fp.h);
+    ctx.globalAlpha = 1;
+  }
+
+  for(const d of runDust){
+    const x=Math.round(d.x - cameraX);
+    const y=Math.round(d.y);
+    ctx.globalAlpha = Math.max(0, d.life/30);
+    ctx.fillStyle="rgba(255,255,255,.22)";
+    ctx.beginPath();
+    ctx.arc(x, y, d.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  for(const g of grass){
+    const gx = Math.round(g.x - cameraX);
+    const gy = Math.round(g.y);
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.rotate(g.rot);
+    ctx.strokeStyle = "rgba(34,197,94,.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(g.size*2, -g.size*3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for(const sp of sparkles){
+    const x = Math.round(sp.x - cameraX);
+    const y = Math.round(sp.y);
+    ctx.globalAlpha = Math.max(0, sp.life/30);
+    ctx.fillStyle = sp.color;
+    ctx.beginPath();
+    ctx.arc(x, y, sp.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  for(const db of deathBits){
+    const x = Math.round(db.x - cameraX);
+    const y = Math.round(db.y);
+    ctx.globalAlpha = Math.max(0, db.life/40);
+    ctx.fillStyle = db.color;
+    ctx.beginPath();
+    ctx.arc(x, y, db.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  const fx=Math.round(level.flag.x - cameraX);
+  const fy=Math.round(level.flag.y);
+  ctx.fillStyle="#3f3f46";
+  ctx.fillRect(fx+10, fy, 8, level.flag.h);
+  ctx.fillStyle="#22c55e";
+  ctx.beginPath();
+  ctx.moveTo(fx+18, fy+18);
+  ctx.lineTo(fx+78, fy+34);
+  ctx.lineTo(fx+18, fy+50);
+  ctx.closePath();
+  ctx.fill();
+
+  const gx=Math.round(level.goal.x - cameraX);
+  ctx.fillStyle="rgba(34,197,94,.14)";
+  ctx.fillRect(gx, 0, level.goal.w, level.goal.h);
+  ctx.strokeStyle="rgba(34,197,94,.40)";
+  ctx.strokeRect(gx, 0, level.goal.w, level.goal.h);
+
+  ctx.fillStyle="rgba(17,24,39,.82)";
+  ctx.fillRect(gx-4, 28, 120, 22);
+  ctx.fillStyle="#fff";
+  ctx.font="bold 12px system-ui";
+  ctx.fillText(`GOAL • ${themeForLevel(levelIndex).name}`, gx+10, 44);
+
+  if(messageTimer>0){
+    ctx.fillStyle="rgba(0,0,0,.45)";
+    ctx.fillRect(14, 70, 920, 44);
+    ctx.fillStyle="#fff";
+    ctx.font="16px system-ui";
+    ctx.fillText(message, 26, 98);
+  }
+
+  if(state==="levelclear"){
+    ctx.fillStyle="rgba(0,0,0,.38)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle="#fff";
+    ctx.font="bold 44px system-ui";
+    ctx.fillText(`MAP ${levelIndex+1} HOÀN THÀNH!`, W/2 - 250, H/2 - 10);
+    ctx.font="18px system-ui";
+    ctx.fillText("Chuẩn bị qua màn...", W/2 - 80, H/2 + 26);
+  }
+
+  const wt = weatherForLevel(levelIndex);
+  if(wt!=="clear"){
+    for(const p of weatherDrops){
+      if(p.type==="rain"){
+        ctx.strokeStyle="rgba(147,197,253,.55)";
+        ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(p.x - cameraX, p.y);
+        ctx.lineTo(p.x - cameraX - 6, p.y + 16);
+        ctx.stroke();
+        ctx.lineWidth=1;
+      }else if(p.type==="leaves"){
+        ctx.fillStyle="rgba(34,197,94,.55)";
+        ctx.beginPath();
+        ctx.ellipse(p.x - cameraX, p.y, 4, 2.5, (p.x*0.01), 0, Math.PI*2);
+        ctx.fill();
+      }else if(p.type==="snow"){
+        ctx.fillStyle="rgba(255,255,255,.75)";
+        ctx.beginPath();
+        ctx.arc(p.x - cameraX, p.y, 2, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+function drawPlayer(){
+  const skin = SKINS[skinName] || SKINS.red;
+  const px=Math.round(player.x - cameraX);
+  const py=Math.round(player.y);
+  const blink = (player.immuneFrames>0) && (Math.floor(performance.now()/80)%2===0);
+  if(blink) return;
+
+  ctx.fillStyle="rgba(0,0,0,.16)";
+  ctx.beginPath();
+  ctx.ellipse(px + player.w/2, py + player.h + 7, 18, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = skin.outline;
+  ctx.fillRect(px-1, py-1, player.w+2, player.h+2);
+
+  const legY = py + 28;
+  const legSwap = player.stepSwap && player.onGround && Math.abs(player.vx)>1.2;
+  ctx.fillStyle = skin.pants;
+  ctx.fillRect(px + (legSwap? 4:6), legY, 6, 10);
+  ctx.fillRect(px + (legSwap? 16:14), legY, 6, 10);
+
+  ctx.fillStyle = skin.shirt;
+  ctx.fillRect(px, py+4, player.w, 16);
+
+  ctx.fillStyle = skin.pants;
+  ctx.fillRect(px, py+20, player.w, 10);
+
+  ctx.fillStyle = skin.hat;
+  ctx.fillRect(px-2, py-6, player.w+4, 10);
+
+  ctx.fillStyle = skin.skin;
+  const fx = player.facing===1 ? px+16 : px+2;
+  ctx.fillRect(fx, py+10, 10, 10);
+
+  ctx.fillStyle="#111";
+  const ex = player.facing===1 ? px+22 : px+6;
+  ctx.fillRect(ex, py+13, 2, 2);
+
+  if(player.invincibleFrames>0){
+    ctx.strokeStyle="rgba(59,130,246,.75)";
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(px + player.w/2, py + player.h/2, 26, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.lineWidth=1;
+  }
+}
+
+// MAIN LOOP
+function update(){
+  ctx.clearRect(0,0,W,H);
+  if(messageTimer>0) messageTimer--;
+  for(const b of level.blocks){
+    if(b.bump>0) b.bump -= 1.5;
+    if(b.bump<0) b.bump = 0;
+  }
+
+  if(state==="playing"){
+    playFrames++;
+    tickParticles();
+    tickWeather();
+    for(const e of level.enemies) updateEnemy(e);
+    updateTurrets();
+    updateCrocs();
+    updateBirds();
+    updatePlayer();
+    if(keys.has("KeyR") || touchReset){
+      resetLevelToCurrent(true,true);
+      showMsg("Reset màn!", 40);
+      touchReset = false;
+    }
+    renderHUD();
+  }
+
+  if(state==="levelclear"){
+    tickParticles();
+    tickWeather();
+    for(const e of level.enemies) updateEnemy(e);
+    updateTurrets();
+    updateCrocs();
+    updateBirds();
+    levelClearTimer--;
+    if(levelClearTimer<=0){
+      state="playing";
+      nextLevel();
+    }
+    renderHUD();
+  }
+
+  if(state==="paused" || state==="list"){
+    tickParticles();
+    renderHUD();
+  }
+
+  drawWorld();
+  if(state==="playing" || state==="paused" || state==="list" || state==="levelclear"){
+    drawPlayer();
+  }
+
+  requestAnimationFrame(update);
+}
+
+// UI
+function showStart(){
+  state="start";
+  startOverlay.style.display="flex";
+  listOverlay.style.display="none";
+  endOverlay.style.display="none";
+  hud.style.display="none";
+  topButtons.style.display="none";
+  renderRank(leaderList);
+  renderRank(leaderList2);
+  renderRank(leaderListIngame);
+  stopAmbience();
+}
+function openList(){
+  if(state!=="playing" && state!=="paused") return;
+  state="list";
+  listOverlay.style.display="flex";
+  listUser.textContent = `@${userName}`;
+  renderRank(leaderListIngame);
+  skinSelect.value = skinName;
+  renderHUD();
+}
+function closeListToGame(){
+  listOverlay.style.display="none";
+  state="playing";
+  renderHUD();
+}
+function togglePause(){
+  if(state==="playing"){
+    state="paused";
+    pauseBtn.textContent="▶";
+  }else if(state==="paused"){
+    state="playing";
+    pauseBtn.textContent="⏸";
+  }
+}
+
+// Buttons
+howBtn.addEventListener("click", ()=> {
+  howText.style.display = (howText.style.display==="none") ? "block" : "none";
+});
+pauseBtn.addEventListener("click", ()=>{ ensureAudio(); togglePause(); });
+listBtn.addEventListener("click", ()=>{ ensureAudio(); openList(); });
+
+backToGameBtn.addEventListener("click", ()=> closeListToGame());
+resumeBtn.addEventListener("click", ()=> closeListToGame());
+restartLevelBtn.addEventListener("click", ()=>{
+  resetLevelToCurrent(true,true);
+  closeListToGame();
+});
+logoutBtn.addEventListener("click", ()=>{
+  clearSession();
+  showStart();
+});
+saveSkinBtn.addEventListener("click", ()=>{
+  skinName = skinSelect.value;
+  const map = getSkinMap();
+  map[userName] = skinName;
+  setSkinMap(map);
+  showMsg("Đã lưu skin!", 40);
+});
+backToStartBtn.addEventListener("click", ()=> showStart());
+playAgainBtn.addEventListener("click", ()=> startGameFresh());
+
+// CLEAR RANK: xoá cả lịch sử RANK_KEY + reset thống kê điểm của tất cả user
+function clearAllRankAndStats(){
+  try{ localStorage.removeItem(RANK_KEY); }catch{}
+  const users = getUsers().map(u => ({
+    user: u.user,
+    pass: u.pass,
+    bestScore: 0,
+    lastScore: 0,
+    playCount: 0,
+    lastPlayed: 0
+  }));
+  setUsers(users);
+  renderRank(leaderList);
+  renderRank(leaderList2);
+  renderRank(leaderListIngame);
+}
+
+clearRankBtn.addEventListener("click", clearAllRankAndStats);
+clearRankBtn2.addEventListener("click", clearAllRankAndStats);
+
+// ===== AUTH =====
+function login(user, pass){
+  const users = getUsers();
+  const found = users.find(u=>u.user===user && u.pass===pass);
+  if(!found) return false;
+  ensureUserStatsFor(found.user);
+  setSession({ user });
+  return true;
+}
+function register(user, pass){
+  if(user.length<2 || pass.length<3) return { ok:false, msg:"Tên >=2 ký tự, mật khẩu >=3 ký tự." };
+  const users = getUsers();
+  if(users.some(u=>u.user===user)) return { ok:false, msg:"Tài khoản đã tồn tại." };
+  users.push({
+    user,
+    pass,
+    bestScore: 0,
+    lastScore: 0,
+    playCount: 0,
+    lastPlayed: 0
+  });
+  setUsers(users);
+  setSession({ user });
+  return { ok:true, msg:"Đăng ký thành công!" };
+}
+function afterAuth(user){
+  userName = user;
+  ensureUserStatsFor(userName);
+  const map = getSkinMap();
+  skinName = map[userName] || "red";
+  startGameFresh();
+  syncAmbienceToLevel();
+}
+loginBtn.addEventListener("click", ()=>{
+  ensureAudio();
+  const u=(userInput.value||"").trim().slice(0,16);
+  const p=(passInput.value||"").trim().slice(0,20);
+  if(!u||!p){ showAuthMsg("Nhập đủ tài khoản + mật khẩu."); return; }
+  if(login(u,p)){
+    showAuthMsg("Đăng nhập OK!", true);
+    afterAuth(u);
+  }else{
+    showAuthMsg("Sai tài khoản hoặc mật khẩu.");
+  }
+});
+registerBtn.addEventListener("click", ()=>{
+  ensureAudio();
+  const u=(userInput.value||"").trim().slice(0,16);
+  const p=(passInput.value||"").trim().slice(0,20);
+  if(!u||!p){ showAuthMsg("Nhập đủ tài khoản + mật khẩu."); return; }
+  const res = register(u,p);
+  showAuthMsg(res.msg, res.ok);
+  if(res.ok) afterAuth(u);
+});
+
+// TOUCH CONTROLS
+function bindHoldButton(btn, onDown, onUp){
+  if(!btn) return;
+  const start = e=>{
+    e.preventDefault();
+    onDown();
+  };
+  const end = e=>{
+    e.preventDefault();
+    onUp();
+  };
+  btn.addEventListener("touchstart", start, {passive:false});
+  btn.addEventListener("touchend", end, {passive:false});
+  btn.addEventListener("touchcancel", end, {passive:false});
+  btn.addEventListener("mousedown", start);
+  window.addEventListener("mouseup", end);
+}
+function setupTouchControls(){
+  if(!isTouchDevice){
+    touchControls.style.display="none";
+    return;
+  }
+  touchControls.style.display="flex";
+  bindHoldButton(btnLeft,
+    ()=>{ touchInput.left=true; },
+    ()=>{ touchInput.left=false; }
+  );
+  bindHoldButton(btnRight,
+    ()=>{ touchInput.right=true; },
+    ()=>{ touchInput.right=false; }
+  );
+  bindHoldButton(btnJump,
+    ()=>{ touchInput.jump=true; },
+    ()=>{ touchInput.jump=false; }
+  );
+}
+
+// INIT
+function init(){
+  renderRank(leaderList);
+  renderRank(leaderList2);
+  renderRank(leaderListIngame);
+  setupTouchControls();
+  const s = getSession();
+  if(s && s.user){
+    userName = s.user;
+    ensureUserStatsFor(userName);
+    const map = getSkinMap();
+    skinName = map[userName] || "red";
+    startGameFresh();
+  }else{
+    showStart();
+  }
+  resetLevelToCurrent(true,true);
+  renderHUD();
+  update();
+}
+init();
+</script>
+</body>
+</html>
